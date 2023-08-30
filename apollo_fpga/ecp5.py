@@ -468,9 +468,6 @@ class ECP5CommandBasedProgrammer(ECP5Programmer):
         finally:
             self.chain.debugger.set_led_pattern(self.chain.debugger.LED_PATTERN_IDLE)
 
-            # Let the LUNA gateware take over in devices with shared USB port
-            self.chain.debugger.honor_fpga_adv()
-
 
     def _restart_configuration_process(self):
         """ Restarts the configuration process; equivalent to toggling the PROGRAM_N pin. """

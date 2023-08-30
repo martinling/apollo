@@ -91,7 +91,6 @@ bool handle_set_led_pattern(uint8_t rhport, tusb_control_request_t const* reques
 bool handle_trigger_fpga_reconfiguration(uint8_t rhport, tusb_control_request_t const* request)
 {
 	trigger_fpga_reconfiguration();
-	honor_fpga_adv();
 	return true;
 }
 
