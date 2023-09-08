@@ -15,11 +15,20 @@ import time
 import errno
 import logging
 import argparse
+import xdg.BaseDirectory
+from functools import partial
 
 from apollo_fpga import ApolloDebugger
 from apollo_fpga.jtag import JTAGChain, JTAGPatternError
-from apollo_fpga.ecp5 import ECP5_JTAGProgrammer
+from apollo_fpga.ecp5 import ECP5_JTAGProgrammer, ECP5FlashBridgeProgrammer
 from apollo_fpga.onboard_jtag import *
+
+from amaranth.build.run import LocalBuildProducts
+try:
+    from luna.gateware.platform import get_appropriate_platform
+    from luna.gateware.applets.flash_bridge import FlashBridge, FlashBridgeConnection
+except ImportError:
+    pass
 
 
 COMMAND_HELP_TEXT = \
@@ -171,6 +180,38 @@ def program_flash(device, args):
 
     device.soft_reset()
 
+
+def program_flash_fast(device, args, *, platform):
+
+    # Retrieve a FlashBridge cached bitstream or build it
+    plan = platform.build(FlashBridge(), do_build=False)
+    cache_dir = os.path.join(
+        xdg.BaseDirectory.save_cache_path('apollo'), 'build', plan.digest().hex()
+    )
+    if os.path.exists(cache_dir):
+        products = LocalBuildProducts(cache_dir)
+    else:
+        products = plan.execute_local(cache_dir)
+
+    # Configure flash bridge
+    with device.jtag as jtag:
+        programmer = device.create_jtag_programmer(jtag)
+        programmer.configure(products.get("top.bit"))
+
+    # Let the LUNA gateware take over in devices with shared USB port
+    device.honor_fpga_adv()
+
+    # Wait for flash bridge enumeration
+    time.sleep(2)
+
+    # Program SPI flash memory using the configured bridge
+    bridge = FlashBridgeConnection()
+    programmer = ECP5FlashBridgeProgrammer(bridge=bridge)
+    with open(args.argument, "rb") as f:
+        bitstream = f.read()
+    programmer.flash(bitstream)
+
+
 def read_back_flash(device, args):
 
     # XXX abstract this?
@@ -298,6 +339,7 @@ def main():
         'flash-erase':   erase_flash,
         'flash':         program_flash,
         'flash-program': program_flash,
+        'flash-fast':    program_flash_fast,
         'flash-read':    read_back_flash,
 
         # JTAG commands
@@ -331,13 +373,19 @@ def main():
                         help='the value to a register write command, or the length for flash read')
 
     args = parser.parse_args()
+
+    # Add a special case where the platform information is needed
+    if args.command == 'flash-fast':
+        command = partial(program_flash_fast, platform=get_appropriate_platform())
+    else:
+        command = commands[args.command]
+
     device = ApolloDebugger()
 
     # Set up python's logging to act as a simple print, for now.
     logging.basicConfig(level=logging.INFO, format="%(message)-s")
 
     # Execute the relevant command.
-    command = commands[args.command]
     command(device, args)
 
 
