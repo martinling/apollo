@@ -58,7 +58,11 @@ int main(void)
 	// Trigger an FPGA reconfiguration; so the FPGA automatically
 	// configures itself from its SPI ROM on reset. This effectively
 	// makes the RESET button reset both the uC and the FPGA.
-	trigger_fpga_reconfiguration();
+	// Only reconfigure the FPGA if the PROGRAM button is not being
+	// pressed.
+        if (gpio_get_pin_level(PROGRAM_BUTTON) == true) {
+		trigger_fpga_reconfiguration();
+	}
 
 	while (1) {
 		tud_task(); // tinyusb device task

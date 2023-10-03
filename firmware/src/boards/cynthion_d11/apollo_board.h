@@ -51,7 +51,11 @@ enum {
 #else
 	PROGRAM_BUTTON = PIN_PA02,
 	USB_SWITCH     = PIN_PA06,
-	FPGA_INT       = PIN_PA09,
+	FPGA_ADV       = PIN_PA09,
+#endif
+#if ((_BOARD_REVISION_MAJOR_ == 1) && (_BOARD_REVISION_MINOR_ > 2))
+	FPGA_INITN     = PIN_PA03,
+	FPGA_DONE      = PIN_PA04,
 #endif
 };
 
