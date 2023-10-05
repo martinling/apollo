@@ -40,7 +40,6 @@ void take_over_usb(void)
 void switch_control_task(void)
 {
 	if (gpio_get_pin_level(PROGRAM_BUTTON) == false) {
-		force_fpga_offline();
 		take_over_usb();
 	}
 }

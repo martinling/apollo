@@ -14,18 +14,8 @@
 
 #include <apollo_board.h>
 
-/**
- * Sets up the I/O pins needed to configure the FPGA.
- */
-void fpga_io_init(void)
-{
-	// By default, keep PROGRAM_N from being driven.
-	gpio_set_pin_level(FPGA_PROGRAM, true);
-	gpio_set_pin_direction(FPGA_PROGRAM, GPIO_DIRECTION_IN);
-}
-
 /*
- * Allows or disallows the FPGA from configuring from flash. When disallowed,
+ * Allows or disallows the FPGA from configuring. When disallowed,
  * initialization (erasing of configuration memory) takes place, but the FPGA
  * does not proceed to the configuration phase.
  */
@@ -45,12 +35,22 @@ void permit_fpga_configuration(bool enable)
 }
 
 /**
+ * Sets up the I/O pins needed to configure the FPGA.
+ */
+void fpga_io_init(void)
+{
+	// By default, keep PROGRAM_N from being driven.
+	gpio_set_pin_level(FPGA_PROGRAM, true);
+	gpio_set_pin_direction(FPGA_PROGRAM, GPIO_DIRECTION_IN);
+
+	permit_fpga_configuration(true);
+}
+
+/**
  * Requests that the FPGA clear its configuration and try to reconfigure.
  */
 void trigger_fpga_reconfiguration(void)
 {
-	permit_fpga_configuration(true);
-
 	gpio_set_pin_direction(FPGA_PROGRAM, GPIO_DIRECTION_OUT);
 	gpio_set_pin_level(FPGA_PROGRAM, false);
 
@@ -65,8 +65,6 @@ void trigger_fpga_reconfiguration(void)
  */
 void force_fpga_offline(void)
 {
-	permit_fpga_configuration(false);
-
 	gpio_set_pin_direction(FPGA_PROGRAM, GPIO_DIRECTION_OUT);
 	gpio_set_pin_level(FPGA_PROGRAM, false);
 }
